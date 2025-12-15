@@ -279,6 +279,16 @@
             color: #2c3e50;
         }
 
+        .error-box {
+            background: #fee;
+            border-left: 4px solid #e74c3c;
+            padding: 12px;
+            border-radius: 6px;
+            margin-top: 15px;
+            font-size: 13px;
+            color: #c0392b;
+        }
+
         ul {
             margin-left: 20px;
             margin-top: 8px;
@@ -342,6 +352,8 @@
                 <button id="simulateBtn">
                     <span id="btnText">Simulate Policy Outcomes</span>
                 </button>
+                
+                <div id="errorMessage"></div>
             </div>
 
             <div class="card">
@@ -448,6 +460,9 @@
             const budget = document.getElementById('budget').value;
             const stakeholders = document.getElementById('stakeholders').value;
 
+            // Clear previous error
+            document.getElementById('errorMessage').innerHTML = '';
+
             if (!policyName || !policyDescription) {
                 alert('Please provide at least a policy name and description.');
                 return;
@@ -470,40 +485,76 @@ Geographic Scope: ${geoScope}
 Budget: ${budget}
 Stakeholders: ${stakeholders}
 
-Provide a structured JSON response with the following sections:
+Provide a structured JSON response with the following exact structure:
 
-1. THREE SCENARIOS (optimistic, realistic, pessimistic):
-   - Each scenario should include measurable outcomes related to SDGs, emissions reductions, access improvements, and equity metrics
-   - Specify intended consequences and potential unintended consequences
-   - Include timeline of expected milestones
+{
+  "scenarios": {
+    "optimistic": {
+      "metrics": [
+        {"label": "Metric Name", "value": "Value with unit"}
+      ],
+      "intended_consequences": ["consequence 1", "consequence 2"],
+      "unintended_consequences": ["consequence 1", "consequence 2"],
+      "timeline": ["milestone 1", "milestone 2"]
+    },
+    "realistic": {
+      "metrics": [
+        {"label": "Metric Name", "value": "Value with unit"}
+      ],
+      "intended_consequences": ["consequence 1", "consequence 2"],
+      "unintended_consequences": ["consequence 1", "consequence 2"],
+      "timeline": ["milestone 1", "milestone 2"]
+    },
+    "pessimistic": {
+      "metrics": [
+        {"label": "Metric Name", "value": "Value with unit"}
+      ],
+      "intended_consequences": ["consequence 1", "consequence 2"],
+      "unintended_consequences": ["consequence 1", "consequence 2"],
+      "timeline": ["milestone 1", "milestone 2"]
+    }
+  },
+  "impact_analysis": {
+    "environmental": {
+      "positive": ["impact 1", "impact 2"],
+      "negative": ["impact 1", "impact 2"]
+    },
+    "social": {
+      "positive": ["impact 1", "impact 2"],
+      "negative": ["impact 1", "impact 2"]
+    },
+    "economic": {
+      "positive": ["impact 1", "impact 2"],
+      "negative": ["impact 1", "impact 2"]
+    }
+  },
+  "equity_distribution": {
+    "beneficiaries": [
+      {"group": "Group Name", "benefits": "Description of benefits"}
+    ],
+    "burdened_groups": [
+      {"group": "Group Name", "burdens": "Description of burdens"}
+    ],
+    "assessment": "Overall distributional fairness assessment"
+  },
+  "blind_spots": {
+    "overlooked_stakeholders": ["stakeholder 1", "stakeholder 2"],
+    "missing_considerations": ["consideration 1", "consideration 2"],
+    "unaddressed_externalities": ["externality 1", "externality 2"]
+  },
+  "enforcement_gaps": {
+    "monitoring_challenges": ["challenge 1", "challenge 2"],
+    "resource_constraints": ["constraint 1", "constraint 2"],
+    "coordination_gaps": ["gap 1", "gap 2"]
+  },
+  "recommendations": {
+    "design_improvements": ["recommendation 1", "recommendation 2"],
+    "risk_mitigation": ["strategy 1", "strategy 2"],
+    "success_metrics": ["metric 1", "metric 2"]
+  }
+}
 
-2. IMPACT ANALYSIS:
-   - Environmental impacts (positive and negative)
-   - Social impacts (positive and negative)
-   - Economic impacts (positive and negative)
-   - Each impact should reference specific indicators
-
-3. EQUITY & DISTRIBUTION:
-   - Identify beneficiary groups and how they benefit
-   - Identify disproportionately burdened groups and specific burdens
-   - Assess distributional fairness
-
-4. POLICY BLIND SPOTS:
-   - List overlooked stakeholders or populations
-   - Identify missing considerations in policy design
-   - Highlight potential externalities not addressed
-
-5. ENFORCEMENT & IMPLEMENTATION GAPS:
-   - Identify challenges in monitoring and enforcement
-   - List resource or capacity constraints
-   - Highlight coordination gaps between agencies/stakeholders
-
-6. RECOMMENDATIONS:
-   - Provide specific, actionable recommendations to improve policy design
-   - Suggest mitigation strategies for identified risks
-   - Recommend metrics for tracking success
-
-Format your response as valid JSON with clear, non-technical language suitable for policymakers.`;
+Return ONLY valid JSON, no markdown formatting or explanatory text. Use clear, non-technical language.`;
 
             try {
                 const response = await fetch(MISTRAL_API_URL, {
@@ -525,7 +576,16 @@ Format your response as valid JSON with clear, non-technical language suitable f
                     })
                 });
 
+                if (!response.ok) {
+                    throw new Error(`API Error: ${response.status} ${response.statusText}`);
+                }
+
                 const data = await response.json();
+                
+                if (!data.choices || !data.choices[0] || !data.choices[0].message) {
+                    throw new Error('Invalid API response structure');
+                }
+
                 const content = data.choices[0].message.content;
                 
                 // Extract JSON from response
@@ -541,7 +601,13 @@ Format your response as valid JSON with clear, non-technical language suitable f
 
             } catch (error) {
                 console.error('Error:', error);
-                alert('Simulation failed. Please check your inputs and try again.');
+                const errorMsg = `
+                    <div class="error-box">
+                        <strong>Simulation Error:</strong> ${error.message}<br>
+                        Please check your API key and try again. If the problem persists, try simplifying your policy description.
+                    </div>
+                `;
+                document.getElementById('errorMessage').innerHTML = errorMsg;
             } finally {
                 btn.disabled = false;
                 btnText.textContent = 'Simulate Policy Outcomes';
@@ -554,10 +620,10 @@ Format your response as valid JSON with clear, non-technical language suitable f
             document.getElementById('resultsSection').scrollIntoView({ behavior: 'smooth' });
 
             displayScenario('optimistic');
-            displayImpactAnalysis(results.impactAnalysis || results.impact_analysis);
-            displayEquityAnalysis(results.equityDistribution || results.equity_distribution);
-            displayBlindSpots(results.blindSpots || results.blind_spots);
-            displayEnforcementGaps(results.enforcementGaps || results.enforcement_gaps);
+            displayImpactAnalysis(results.impact_analysis);
+            displayEquityAnalysis(results.equity_distribution);
+            displayBlindSpots(results.blind_spots);
+            displayEnforcementGaps(results.enforcement_gaps);
             displayRecommendations(results.recommendations);
         }
 
@@ -626,27 +692,25 @@ Format your response as valid JSON with clear, non-technical language suitable f
                         <h3>${cat.charAt(0).toUpperCase() + cat.slice(1)} Impacts</h3>
                         <div class="section-content">`;
                     
-                    if (impacts[cat].positive) {
-                        html += '<h4 style="color: #27ae60; margin-top: 10px;">Positive:</h4><ul>';
+                    if (impacts[cat].positive && impacts[cat].positive.length > 0) {
+                        html += '<h4 style="color: #27ae60; margin-top: 10px;">Positive:</h4>';
                         impacts[cat].positive.forEach(i => {
-                            html += `<li class="impact-item positive">${i}</li>`;
+                            html += `<div class="impact-item positive">${i}</div>`;
                         });
-                        html += '</ul>';
                     }
                     
-                    if (impacts[cat].negative) {
-                        html += '<h4 style="color: #e74c3c; margin-top: 10px;">Negative:</h4><ul>';
+                    if (impacts[cat].negative && impacts[cat].negative.length > 0) {
+                        html += '<h4 style="color: #e74c3c; margin-top: 10px;">Negative:</h4>';
                         impacts[cat].negative.forEach(i => {
-                            html += `<li class="impact-item">${i}</li>`;
+                            html += `<div class="impact-item">${i}</div>`;
                         });
-                        html += '</ul>';
                     }
                     
                     html += '</div></div>';
                 }
             });
 
-            document.getElementById('impactAnalysis').innerHTML = html;
+            document.getElementById('impactAnalysis').innerHTML = html || '<p>No impact data available</p>';
         }
 
         function displayEquityAnalysis(equity) {
@@ -659,7 +723,7 @@ Format your response as valid JSON with clear, non-technical language suitable f
                 <div class="section">
                     <h3>✅ Primary Beneficiaries</h3>
                     <div class="section-content">
-                        ${equity.beneficiaries ? equity.beneficiaries.map(b => `
+                        ${equity.beneficiaries && equity.beneficiaries.length > 0 ? equity.beneficiaries.map(b => `
                             <div style="margin-bottom: 15px;">
                                 <div><span class="stakeholder-tag">${b.group}</span></div>
                                 <p style="margin-top: 8px;">${b.benefits}</p>
@@ -671,7 +735,7 @@ Format your response as valid JSON with clear, non-technical language suitable f
                 <div class="section">
                     <h3>⚖️ Disproportionately Burdened Groups</h3>
                     <div class="section-content">
-                        ${equity.burdened_groups ? equity.burdened_groups.map(b => `
+                        ${equity.burdened_groups && equity.burdened_groups.length > 0 ? equity.burdened_groups.map(b => `
                             <div class="warning-box" style="margin-bottom: 15px;">
                                 <h4>${b.group}</h4>
                                 <p>${b.burdens}</p>
@@ -697,28 +761,27 @@ Format your response as valid JSON with clear, non-technical language suitable f
                 return;
             }
 
-            let html = '<ul>';
+            let html = '';
             
-            if (blindSpots.overlooked_stakeholders) {
-                html += '<li><strong>Overlooked Stakeholders:</strong><ul>';
+            if (blindSpots.overlooked_stakeholders && blindSpots.overlooked_stakeholders.length > 0) {
+                html += '<div class="section"><h3>Overlooked Stakeholders</h3><ul>';
                 blindSpots.overlooked_stakeholders.forEach(s => html += `<li>${s}</li>`);
-                html += '</ul></li>';
+                html += '</ul></div>';
             }
             
-            if (blindSpots.missing_considerations) {
-                html += '<li><strong>Missing Considerations:</strong><ul>';
+            if (blindSpots.missing_considerations && blindSpots.missing_considerations.length > 0) {
+                html += '<div class="section"><h3>Missing Considerations</h3><ul>';
                 blindSpots.missing_considerations.forEach(s => html += `<li>${s}</li>`);
-                html += '</ul></li>';
+                html += '</ul></div>';
             }
             
-            if (blindSpots.unaddressed_externalities) {
-                html += '<li><strong>Unaddressed Externalities:</strong><ul>';
+            if (blindSpots.unaddressed_externalities && blindSpots.unaddressed_externalities.length > 0) {
+                html += '<div class="section"><h3>Unaddressed Externalities</h3><ul>';
                 blindSpots.unaddressed_externalities.forEach(s => html += `<li>${s}</li>`);
-                html += '</ul></li>';
+                html += '</ul></div>';
             }
             
-            html += '</ul>';
-            document.getElementById('blindSpots').innerHTML = html;
+            document.getElementById('blindSpots').innerHTML = html || '<p>No blind spot data available</p>';
         }
 
         function displayEnforcementGaps(gaps) {
@@ -727,28 +790,27 @@ Format your response as valid JSON with clear, non-technical language suitable f
                 return;
             }
 
-            let html = '<ul>';
+            let html = '';
             
-            if (gaps.monitoring_challenges) {
-                html += '<li><strong>Monitoring Challenges:</strong><ul>';
+            if (gaps.monitoring_challenges && gaps.monitoring_challenges.length > 0) {
+                html += '<div class="section"><h3>Monitoring Challenges</h3><ul>';
                 gaps.monitoring_challenges.forEach(s => html += `<li>${s}</li>`);
-                html += '</ul></li>';
+                html += '</ul></div>';
             }
             
-            if (gaps.resource_constraints) {
-                html += '<li><strong>Resource Constraints:</strong><ul>';
+            if (gaps.resource_constraints && gaps.resource_constraints.length > 0) {
+                html += '<div class="section"><h3>Resource Constraints</h3><ul>';
                 gaps.resource_constraints.forEach(s => html += `<li>${s}</li>`);
-                html += '</ul></li>';
+                html += '</ul></div>';
             }
             
-            if (gaps.coordination_gaps) {
-                html += '<li><strong>Coordination Gaps:</strong><ul>';
+            if (gaps.coordination_gaps && gaps.coordination_gaps.length > 0) {
+                html += '<div class="section"><h3>Coordination Gaps</h3><ul>';
                 gaps.coordination_gaps.forEach(s => html += `<li>${s}</li>`);
-                html += '</ul></li>';
+                html += '</ul></div>';
             }
             
-            html += '</ul>';
-            document.getElementById('enforcementGaps').innerHTML = html;
+            document.getElementById('enforcementGaps').innerHTML = html || '<p>No enforcement gap data available</p>';
         }
 
         function displayRecommendations(recommendations) {
@@ -759,25 +821,25 @@ Format your response as valid JSON with clear, non-technical language suitable f
 
             let html = '';
             
-            if (recommendations.design_improvements) {
+            if (recommendations.design_improvements && recommendations.design_improvements.length > 0) {
                 html += '<div class="section"><h3>🔧 Design Improvements</h3><ul>';
                 recommendations.design_improvements.forEach(r => html += `<li>${r}</li>`);
                 html += '</ul></div>';
             }
             
-            if (recommendations.risk_mitigation) {
+            if (recommendations.risk_mitigation && recommendations.risk_mitigation.length > 0) {
                 html += '<div class="section"><h3>🛡️ Risk Mitigation</h3><ul>';
                 recommendations.risk_mitigation.forEach(r => html += `<li>${r}</li>`);
                 html += '</ul></div>';
             }
             
-            if (recommendations.success_metrics) {
+            if (recommendations.success_metrics && recommendations.success_metrics.length > 0) {
                 html += '<div class="section"><h3>📈 Success Metrics</h3><ul>';
                 recommendations.success_metrics.forEach(r => html += `<li>${r}</li>`);
                 html += '</ul></div>';
             }
             
-            document.getElementById('recommendations').innerHTML = html;
+            document.getElementById('recommendations').innerHTML = html || '<p>No recommendations available</p>';
         }
     </script>
 </body>

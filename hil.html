@@ -1,0 +1,784 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PolicyLens AI - Policy Simulator</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #f5f7fa 0%, #e8ecf1 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .header {
+            background: white;
+            padding: 25px 30px;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            margin-bottom: 25px;
+        }
+
+        .header h1 {
+            color: #2c3e50;
+            font-size: 28px;
+            margin-bottom: 8px;
+        }
+
+        .header p {
+            color: #7f8c8d;
+            font-size: 14px;
+        }
+
+        .main-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 25px;
+            margin-bottom: 25px;
+        }
+
+        .card {
+            background: white;
+            border-radius: 12px;
+            padding: 25px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+
+        .card h2 {
+            color: #2c3e50;
+            font-size: 20px;
+            margin-bottom: 18px;
+            padding-bottom: 12px;
+            border-bottom: 2px solid #ecf0f1;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            color: #34495e;
+            font-weight: 600;
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+
+        input[type="text"],
+        textarea,
+        select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e8ecf1;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: all 0.3s;
+            font-family: inherit;
+        }
+
+        input[type="text"]:focus,
+        textarea:focus,
+        select:focus {
+            outline: none;
+            border-color: #3498db;
+            background: #f8f9fa;
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 100px;
+        }
+
+        button {
+            background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
+            color: white;
+            border: none;
+            padding: 14px 28px;
+            border-radius: 8px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            width: 100%;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(52, 152, 219, 0.3);
+        }
+
+        button:disabled {
+            background: #bdc3c7;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .results-section {
+            display: none;
+        }
+
+        .results-section.active {
+            display: block;
+        }
+
+        .scenario-tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .tab {
+            flex: 1;
+            padding: 12px;
+            background: #ecf0f1;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            color: #7f8c8d;
+            transition: all 0.3s;
+        }
+
+        .tab.active {
+            background: linear-gradient(135deg, #27ae60 0%, #229954 100%);
+            color: white;
+        }
+
+        .scenario-content {
+            display: none;
+        }
+
+        .scenario-content.active {
+            display: block;
+        }
+
+        .metric-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .metric-card {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 4px solid #3498db;
+        }
+
+        .metric-label {
+            color: #7f8c8d;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            margin-bottom: 5px;
+        }
+
+        .metric-value {
+            color: #2c3e50;
+            font-size: 22px;
+            font-weight: 700;
+        }
+
+        .section {
+            background: #f8f9fa;
+            padding: 18px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+        }
+
+        .section h3 {
+            color: #2c3e50;
+            font-size: 16px;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .section-content {
+            color: #34495e;
+            line-height: 1.6;
+            font-size: 14px;
+        }
+
+        .impact-item {
+            background: white;
+            padding: 12px;
+            border-radius: 6px;
+            margin-bottom: 10px;
+            border-left: 3px solid #e74c3c;
+        }
+
+        .impact-item.positive {
+            border-left-color: #27ae60;
+        }
+
+        .impact-item.neutral {
+            border-left-color: #f39c12;
+        }
+
+        .stakeholder-tag {
+            display: inline-block;
+            background: #3498db;
+            color: white;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 12px;
+            margin: 3px;
+        }
+
+        .warning-box {
+            background: #fff3cd;
+            border: 2px solid #ffc107;
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 15px;
+        }
+
+        .warning-box h4 {
+            color: #856404;
+            margin-bottom: 8px;
+        }
+
+        .loader {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #3498db;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-left: 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .info-box {
+            background: #e8f4fd;
+            border-left: 4px solid #3498db;
+            padding: 12px;
+            border-radius: 6px;
+            margin-bottom: 15px;
+            font-size: 13px;
+            color: #2c3e50;
+        }
+
+        ul {
+            margin-left: 20px;
+            margin-top: 8px;
+        }
+
+        li {
+            margin-bottom: 6px;
+            line-height: 1.5;
+        }
+
+        @media (max-width: 968px) {
+            .main-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔍 PolicyLens AI</h1>
+            <p>Pre-Implementation Sustainability Policy Simulator - Decision Mirror for Evidence-Based Policy Design</p>
+        </div>
+
+        <div class="main-grid">
+            <div class="card">
+                <h2>Policy Input</h2>
+                <div class="info-box">
+                    💡 This simulator models potential outcomes before implementation. It provides scenario-based analysis, not predictions.
+                </div>
+                
+                <div class="form-group">
+                    <label>Policy Name</label>
+                    <input type="text" id="policyName" placeholder="e.g., Urban Green Transportation Initiative">
+                </div>
+
+                <div class="form-group">
+                    <label>Policy Category</label>
+                    <select id="policyCategory">
+                        <option value="">Select Category</option>
+                        <option value="climate">Climate & Emissions</option>
+                        <option value="energy">Energy & Resources</option>
+                        <option value="transport">Transportation</option>
+                        <option value="waste">Waste Management</option>
+                        <option value="biodiversity">Biodiversity & Conservation</option>
+                        <option value="water">Water Resources</option>
+                        <option value="agriculture">Agriculture & Food Systems</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>Policy Description</label>
+                    <textarea id="policyDescription" placeholder="Describe the policy objectives, mechanisms, and intended outcomes. Include target populations, geographic scope, and implementation timeline."></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label>Implementation Context</label>
+                    <textarea id="implementationContext" placeholder="Describe the socioeconomic context, existing infrastructure, regulatory environment, and stakeholder landscape."></textarea>
+                </div>
+
+                <button id="simulateBtn">
+                    <span id="btnText">Simulate Policy Outcomes</span>
+                </button>
+            </div>
+
+            <div class="card">
+                <h2>Simulation Parameters</h2>
+                
+                <div class="form-group">
+                    <label>Time Horizon</label>
+                    <select id="timeHorizon">
+                        <option value="short">Short-term (1-2 years)</option>
+                        <option value="medium" selected>Medium-term (3-5 years)</option>
+                        <option value="long">Long-term (5-10 years)</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>Geographic Scope</label>
+                    <input type="text" id="geoScope" placeholder="e.g., Urban metropolitan area, National, Regional">
+                </div>
+
+                <div class="form-group">
+                    <label>Budget/Resources Available</label>
+                    <input type="text" id="budget" placeholder="e.g., $10M annually, Limited municipal budget">
+                </div>
+
+                <div class="form-group">
+                    <label>Key Stakeholders</label>
+                    <textarea id="stakeholders" placeholder="List primary stakeholder groups (e.g., local communities, industry, NGOs, government agencies)"></textarea>
+                </div>
+
+                <div class="info-box">
+                    <strong>SDG Alignment:</strong> The simulator evaluates policy alignment with UN Sustainable Development Goals and identifies potential trade-offs between goals.
+                </div>
+            </div>
+        </div>
+
+        <div class="results-section" id="resultsSection">
+            <div class="card">
+                <h2>Simulation Results</h2>
+                
+                <div class="scenario-tabs">
+                    <button class="tab active" data-scenario="optimistic">Best Case Scenario</button>
+                    <button class="tab" data-scenario="realistic">Realistic Scenario</button>
+                    <button class="tab" data-scenario="pessimistic">Risk Scenario</button>
+                </div>
+
+                <div id="scenarioResults"></div>
+            </div>
+
+            <div class="main-grid">
+                <div class="card">
+                    <h2>Impact Analysis</h2>
+                    <div id="impactAnalysis"></div>
+                </div>
+
+                <div class="card">
+                    <h2>Equity & Distribution</h2>
+                    <div id="equityAnalysis"></div>
+                </div>
+            </div>
+
+            <div class="main-grid">
+                <div class="card">
+                    <h2>Policy Blind Spots</h2>
+                    <div id="blindSpots"></div>
+                </div>
+
+                <div class="card">
+                    <h2>Enforcement & Implementation Gaps</h2>
+                    <div id="enforcementGaps"></div>
+                </div>
+            </div>
+
+            <div class="card">
+                <h2>Recommendations</h2>
+                <div id="recommendations"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const MISTRAL_API_KEY = 'OEZQn8eRnSGn4IAZbxEF5y22kFbHtvPa';
+        const MISTRAL_API_URL = 'https://api.mistral.ai/v1/chat/completions';
+
+        let currentScenario = 'optimistic';
+
+        document.getElementById('simulateBtn').addEventListener('click', simulatePolicy);
+
+        document.querySelectorAll('.tab').forEach(tab => {
+            tab.addEventListener('click', (e) => {
+                document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                e.target.classList.add('active');
+                currentScenario = e.target.dataset.scenario;
+                displayScenario(currentScenario);
+            });
+        });
+
+        async function simulatePolicy() {
+            const policyName = document.getElementById('policyName').value;
+            const policyCategory = document.getElementById('policyCategory').value;
+            const policyDescription = document.getElementById('policyDescription').value;
+            const implementationContext = document.getElementById('implementationContext').value;
+            const timeHorizon = document.getElementById('timeHorizon').value;
+            const geoScope = document.getElementById('geoScope').value;
+            const budget = document.getElementById('budget').value;
+            const stakeholders = document.getElementById('stakeholders').value;
+
+            if (!policyName || !policyDescription) {
+                alert('Please provide at least a policy name and description.');
+                return;
+            }
+
+            const btn = document.getElementById('simulateBtn');
+            const btnText = document.getElementById('btnText');
+            btn.disabled = true;
+            btnText.innerHTML = 'Simulating<span class="loader"></span>';
+
+            const prompt = `You are PolicyLens AI, a pre-implementation sustainability policy simulator. Analyze the following policy and provide comprehensive simulation results.
+
+POLICY DETAILS:
+Name: ${policyName}
+Category: ${policyCategory}
+Description: ${policyDescription}
+Implementation Context: ${implementationContext}
+Time Horizon: ${timeHorizon}
+Geographic Scope: ${geoScope}
+Budget: ${budget}
+Stakeholders: ${stakeholders}
+
+Provide a structured JSON response with the following sections:
+
+1. THREE SCENARIOS (optimistic, realistic, pessimistic):
+   - Each scenario should include measurable outcomes related to SDGs, emissions reductions, access improvements, and equity metrics
+   - Specify intended consequences and potential unintended consequences
+   - Include timeline of expected milestones
+
+2. IMPACT ANALYSIS:
+   - Environmental impacts (positive and negative)
+   - Social impacts (positive and negative)
+   - Economic impacts (positive and negative)
+   - Each impact should reference specific indicators
+
+3. EQUITY & DISTRIBUTION:
+   - Identify beneficiary groups and how they benefit
+   - Identify disproportionately burdened groups and specific burdens
+   - Assess distributional fairness
+
+4. POLICY BLIND SPOTS:
+   - List overlooked stakeholders or populations
+   - Identify missing considerations in policy design
+   - Highlight potential externalities not addressed
+
+5. ENFORCEMENT & IMPLEMENTATION GAPS:
+   - Identify challenges in monitoring and enforcement
+   - List resource or capacity constraints
+   - Highlight coordination gaps between agencies/stakeholders
+
+6. RECOMMENDATIONS:
+   - Provide specific, actionable recommendations to improve policy design
+   - Suggest mitigation strategies for identified risks
+   - Recommend metrics for tracking success
+
+Format your response as valid JSON with clear, non-technical language suitable for policymakers.`;
+
+            try {
+                const response = await fetch(MISTRAL_API_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${MISTRAL_API_KEY}`
+                    },
+                    body: JSON.stringify({
+                        model: 'mistral-large-latest',
+                        messages: [
+                            {
+                                role: 'user',
+                                content: prompt
+                            }
+                        ],
+                        temperature: 0.7,
+                        max_tokens: 4000
+                    })
+                });
+
+                const data = await response.json();
+                const content = data.choices[0].message.content;
+                
+                // Extract JSON from response
+                let jsonContent = content;
+                if (content.includes('```json')) {
+                    jsonContent = content.split('```json')[1].split('```')[0].trim();
+                } else if (content.includes('```')) {
+                    jsonContent = content.split('```')[1].split('```')[0].trim();
+                }
+
+                const results = JSON.parse(jsonContent);
+                displayResults(results);
+
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Simulation failed. Please check your inputs and try again.');
+            } finally {
+                btn.disabled = false;
+                btnText.textContent = 'Simulate Policy Outcomes';
+            }
+        }
+
+        function displayResults(results) {
+            window.simulationResults = results;
+            document.getElementById('resultsSection').classList.add('active');
+            document.getElementById('resultsSection').scrollIntoView({ behavior: 'smooth' });
+
+            displayScenario('optimistic');
+            displayImpactAnalysis(results.impactAnalysis || results.impact_analysis);
+            displayEquityAnalysis(results.equityDistribution || results.equity_distribution);
+            displayBlindSpots(results.blindSpots || results.blind_spots);
+            displayEnforcementGaps(results.enforcementGaps || results.enforcement_gaps);
+            displayRecommendations(results.recommendations);
+        }
+
+        function displayScenario(scenario) {
+            const results = window.simulationResults;
+            if (!results || !results.scenarios) return;
+
+            const scenarioData = results.scenarios[scenario];
+            if (!scenarioData) return;
+
+            let html = `
+                <div class="scenario-content active">
+                    <div class="metric-grid">
+                        ${scenarioData.metrics ? scenarioData.metrics.map(m => `
+                            <div class="metric-card">
+                                <div class="metric-label">${m.label || m.name}</div>
+                                <div class="metric-value">${m.value}</div>
+                            </div>
+                        `).join('') : ''}
+                    </div>
+
+                    <div class="section">
+                        <h3>📊 Intended Consequences</h3>
+                        <div class="section-content">
+                            <ul>
+                                ${scenarioData.intended_consequences ? scenarioData.intended_consequences.map(c => `<li>${c}</li>`).join('') : '<li>No data available</li>'}
+                            </ul>
+                        </div>
+                    </div>
+
+                    <div class="section">
+                        <h3>⚠️ Potential Unintended Consequences</h3>
+                        <div class="section-content">
+                            <ul>
+                                ${scenarioData.unintended_consequences ? scenarioData.unintended_consequences.map(c => `<li>${c}</li>`).join('') : '<li>No data available</li>'}
+                            </ul>
+                        </div>
+                    </div>
+
+                    <div class="section">
+                        <h3>📅 Timeline & Milestones</h3>
+                        <div class="section-content">
+                            <ul>
+                                ${scenarioData.timeline ? scenarioData.timeline.map(t => `<li>${t}</li>`).join('') : '<li>No timeline data available</li>'}
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            document.getElementById('scenarioResults').innerHTML = html;
+        }
+
+        function displayImpactAnalysis(impacts) {
+            if (!impacts) {
+                document.getElementById('impactAnalysis').innerHTML = '<p>No impact data available</p>';
+                return;
+            }
+
+            const categories = ['environmental', 'social', 'economic'];
+            let html = '';
+
+            categories.forEach(cat => {
+                if (impacts[cat]) {
+                    html += `<div class="section">
+                        <h3>${cat.charAt(0).toUpperCase() + cat.slice(1)} Impacts</h3>
+                        <div class="section-content">`;
+                    
+                    if (impacts[cat].positive) {
+                        html += '<h4 style="color: #27ae60; margin-top: 10px;">Positive:</h4><ul>';
+                        impacts[cat].positive.forEach(i => {
+                            html += `<li class="impact-item positive">${i}</li>`;
+                        });
+                        html += '</ul>';
+                    }
+                    
+                    if (impacts[cat].negative) {
+                        html += '<h4 style="color: #e74c3c; margin-top: 10px;">Negative:</h4><ul>';
+                        impacts[cat].negative.forEach(i => {
+                            html += `<li class="impact-item">${i}</li>`;
+                        });
+                        html += '</ul>';
+                    }
+                    
+                    html += '</div></div>';
+                }
+            });
+
+            document.getElementById('impactAnalysis').innerHTML = html;
+        }
+
+        function displayEquityAnalysis(equity) {
+            if (!equity) {
+                document.getElementById('equityAnalysis').innerHTML = '<p>No equity data available</p>';
+                return;
+            }
+
+            let html = `
+                <div class="section">
+                    <h3>✅ Primary Beneficiaries</h3>
+                    <div class="section-content">
+                        ${equity.beneficiaries ? equity.beneficiaries.map(b => `
+                            <div style="margin-bottom: 15px;">
+                                <div><span class="stakeholder-tag">${b.group}</span></div>
+                                <p style="margin-top: 8px;">${b.benefits}</p>
+                            </div>
+                        `).join('') : '<p>No beneficiary data available</p>'}
+                    </div>
+                </div>
+
+                <div class="section">
+                    <h3>⚖️ Disproportionately Burdened Groups</h3>
+                    <div class="section-content">
+                        ${equity.burdened_groups ? equity.burdened_groups.map(b => `
+                            <div class="warning-box" style="margin-bottom: 15px;">
+                                <h4>${b.group}</h4>
+                                <p>${b.burdens}</p>
+                            </div>
+                        `).join('') : '<p>No burden data available</p>'}
+                    </div>
+                </div>
+
+                <div class="section">
+                    <h3>📊 Distributional Assessment</h3>
+                    <div class="section-content">
+                        <p>${equity.assessment || 'No assessment available'}</p>
+                    </div>
+                </div>
+            `;
+
+            document.getElementById('equityAnalysis').innerHTML = html;
+        }
+
+        function displayBlindSpots(blindSpots) {
+            if (!blindSpots) {
+                document.getElementById('blindSpots').innerHTML = '<p>No blind spot data available</p>';
+                return;
+            }
+
+            let html = '<ul>';
+            
+            if (blindSpots.overlooked_stakeholders) {
+                html += '<li><strong>Overlooked Stakeholders:</strong><ul>';
+                blindSpots.overlooked_stakeholders.forEach(s => html += `<li>${s}</li>`);
+                html += '</ul></li>';
+            }
+            
+            if (blindSpots.missing_considerations) {
+                html += '<li><strong>Missing Considerations:</strong><ul>';
+                blindSpots.missing_considerations.forEach(s => html += `<li>${s}</li>`);
+                html += '</ul></li>';
+            }
+            
+            if (blindSpots.unaddressed_externalities) {
+                html += '<li><strong>Unaddressed Externalities:</strong><ul>';
+                blindSpots.unaddressed_externalities.forEach(s => html += `<li>${s}</li>`);
+                html += '</ul></li>';
+            }
+            
+            html += '</ul>';
+            document.getElementById('blindSpots').innerHTML = html;
+        }
+
+        function displayEnforcementGaps(gaps) {
+            if (!gaps) {
+                document.getElementById('enforcementGaps').innerHTML = '<p>No enforcement gap data available</p>';
+                return;
+            }
+
+            let html = '<ul>';
+            
+            if (gaps.monitoring_challenges) {
+                html += '<li><strong>Monitoring Challenges:</strong><ul>';
+                gaps.monitoring_challenges.forEach(s => html += `<li>${s}</li>`);
+                html += '</ul></li>';
+            }
+            
+            if (gaps.resource_constraints) {
+                html += '<li><strong>Resource Constraints:</strong><ul>';
+                gaps.resource_constraints.forEach(s => html += `<li>${s}</li>`);
+                html += '</ul></li>';
+            }
+            
+            if (gaps.coordination_gaps) {
+                html += '<li><strong>Coordination Gaps:</strong><ul>';
+                gaps.coordination_gaps.forEach(s => html += `<li>${s}</li>`);
+                html += '</ul></li>';
+            }
+            
+            html += '</ul>';
+            document.getElementById('enforcementGaps').innerHTML = html;
+        }
+
+        function displayRecommendations(recommendations) {
+            if (!recommendations) {
+                document.getElementById('recommendations').innerHTML = '<p>No recommendations available</p>';
+                return;
+            }
+
+            let html = '';
+            
+            if (recommendations.design_improvements) {
+                html += '<div class="section"><h3>🔧 Design Improvements</h3><ul>';
+                recommendations.design_improvements.forEach(r => html += `<li>${r}</li>`);
+                html += '</ul></div>';
+            }
+            
+            if (recommendations.risk_mitigation) {
+                html += '<div class="section"><h3>🛡️ Risk Mitigation</h3><ul>';
+                recommendations.risk_mitigation.forEach(r => html += `<li>${r}</li>`);
+                html += '</ul></div>';
+            }
+            
+            if (recommendations.success_metrics) {
+                html += '<div class="section"><h3>📈 Success Metrics</h3><ul>';
+                recommendations.success_metrics.forEach(r => html += `<li>${r}</li>`);
+                html += '</ul></div>';
+            }
+            
+            document.getElementById('recommendations').innerHTML = html;
+        }
+    </script>
+</body>
+</html>
